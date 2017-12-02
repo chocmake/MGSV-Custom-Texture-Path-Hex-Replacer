@@ -1,6 +1,6 @@
 # MGSV Custom Texture Path Hex Replacer
 
-Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files
+Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files, the manual process of which was outlined originally on BobDoleOwndU's [wiki page](http://bobdoleowndu.github.io/mgsv/documentation/customtexturenames.html).
 
 ### Requirements
 
