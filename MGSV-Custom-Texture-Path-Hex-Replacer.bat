@@ -188,7 +188,7 @@ echo   !custompathpro!
 echo.
 echo.
 echo.
-echo   Target Hex File _______________________________________
+echo   Target Model File _____________________________________
 echo.
 echo.
 
