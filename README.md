@@ -16,6 +16,8 @@ Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files, the manua
 3. Launch `MGSV-Custom-Texture-Path-Hex-Replacer.bat`.
 4. Drag and drop the installed programs on the window as prompted to save the paths to the script.
 
+> Tip: A user setting to show/hide the 'how to' text above the input prompts can be manually changed at the end of the batch script in a text editor. To hide the text change the `set showhowto=` value to `0`, or back to `1` to make it visible again.   
+
 ### Usage
 
 The script can launched a few different ways:
