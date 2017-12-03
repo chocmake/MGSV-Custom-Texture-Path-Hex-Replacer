@@ -3,10 +3,10 @@
 
 :: Name:            MGSV Custom Texture Path Hex Replacer
 :: Description:     Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files
-:: Requirements:    GzsTool (BobDoleOwndU version), XVI32, included XVIscript file
+:: Requirements:    GzsTool (BobDoleOwndU version), XVI32 hex editor
 :: URL:             https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer
 :: Author:          choc
-:: Version:         0.1 (2017-12-02)
+:: Version:         0.1.1 (2017-12-03)
 
 :: -----------------------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: Script version
-set version=0.1
+set version=0.1.1
 
 :: Command prompt styling (global)
 color F0
@@ -23,26 +23,38 @@ title MGSV Custom Texture Path Hex Replacer ^(v!version!^)
 :: Prompt padding
 for /f %%a in ('"prompt $H &echo on &for %%B in (1) do rem"') do set BS=%%a
 
-:: Check for existing program path variables
+:: New line character variable (two new lines required below)
+set lf=^
+
+
+:: Set temp directory for self-generated script files
+if exist "%temp%" (
+    set "scriptdir=%temp%\"
+    ) else (
+    set "scriptdir=%~dp0"
+    )
+
+:: Check for user settings, existing program path variables
+call :checksettings
 call :checkpaths
-if defined gzstoolpath if defined xvi32path if defined xviscriptpath goto :pathsadded
+if defined gzstoolpath if defined xvi32path goto :pathsadded
 
 :: ------------------------------ Program Paths Initial Setup ------------------------------
 :: -----------------------------------------------------------------------------------------
 
 :: Command prompt styling
-mode con: cols=60 lines=40
+mode con: cols=60 lines=30
 
+:topinitial
 echo.
 echo.
 echo   Initial Setup _________________________________________
 echo.
 echo.
-echo   You'll first need to grab the following programs/files:
+echo   You'll first need to grab the following programs:
 echo.
-echo   - GzsTool (BobDoleOwndU version) 
+echo   - GzsTool (BobDoleOwndU version)
 echo   - XVI32 hex editor
-echo   - XVIscript .XSC file included with this script.
 echo.
 echo   Then follow the prompts below to store their paths.
 echo.
@@ -53,64 +65,133 @@ echo.
 echo.
 
 :: Drag and drop prompts
+if defined gzstoolpath goto :gzstoolpathprocessed
 echo   Drag and drop GzsTool.exe here then press Enter:
 echo.
 :gzstoolprompt
 set /p gzstoolpath=!BS!  
-if not defined gzstoolpath goto :gzstoolprompt
+if not defined gzstoolpath (
+    goto :gzstoolprompt
+    ) else (
+    cls
+    goto :topinitial
+    )
+:gzstoolpathprocessed
+set longstr=!gzstoolpath!&call:newlines 
 
+if defined xvi32path goto :xvi32pathprocessed
 echo.
 echo.
 echo   Drag and drop XVI32.exe here then press Enter:
 echo.
 :xvi32pathprompt
 set /p xvi32path=!BS!  
-if not defined xvi32path goto :xvi32pathprompt
-
+if not defined xvi32path (
+    goto :xvi32pathprompt
+    ) else (
+    cls
+    goto :topinitial
+    )
+:xvi32pathprocessed
 echo.
 echo.
-echo   Drag and drop HexRepl.xsc here then press Enter:
-echo.
-:xviscriptpathprompt
-set /p xviscriptpath=!BS!  
-if not defined xviscriptpath goto :xviscriptpathprompt
+set longstr=!xvi32path!&call:newlines 
 
 :: Append the paths to end of this script
 set "script=%~f0"
 setlocal EnableDelayedExpansion
 >>"!script!" echo set gzstoolpath=!gzstoolpath!
 >>"!script!" echo set xvi32path=!xvi32path!
->>"!script!" echo set xviscriptpath=!xviscriptpath!
 echo.
 echo.
-pause>nul|set /p =!BS!  Setup complete^^! Press any key to continue  !BS!&& mode con: cols=60 lines=50
+pause>nul|set /p =!BS!  Setup complete^^! Press any key to continue...  !BS!&& mode con: cols=60 lines=50
 endlocal
 
 :: --------------------------------- The Rest of the Script --------------------------------
 :: -----------------------------------------------------------------------------------------
 
 :pathsadded
-setlocal EnableDelayedExpansion
+setlocal EnableExtensions EnableDelayedExpansion
 
 :: Command prompt styling
-mode con: cols=60 lines=48
+if /i "!showhowto:~0,1!"=="1" (
+    mode con: cols=60 lines=51
+    ) else (
+    rem Shorten window height when hiding how to text
+    mode con: cols=60 lines=38
+    )
+
+:: Input check if script launched with prior input (file dropped on script, etc)
+set filepath="%~1"
+set "filepath=!filepath:"=!"
+if defined filepath (
+    rem obtain correct path with ampersands but no spaces
+    set "filepath=!cmdcmdline:~0,-1!"
+    set "filepath=!filepath:*" =!"
+    set "filepath=!filepath:"=!"
+    set filepath="!filepath!"
+    for /f "delims=" %%a in ("!filepath!") do (
+        rem obtain any exclamation marks in filename
+        setlocal EnableExtensions DisableDelayedExpansion
+        set "filepath=%%~dpa%%~na%%~xa"
+        )
+    setlocal EnableExtensions EnableDelayedExpansion
+    rem Quotes must be added outside here else the problematic characters will be stripped from variable 
+    set filepath="!filepath!"
+    set filepathhowtocheck=1
+    )
 
 :top
 cls
 echo.
 echo.
-echo   Custom Texture Path Replacement _______________________
+if /i "!showhowto:~0,1!"=="1" (
+    echo   Custom Texture Path Replacement _______________________
+    echo.
+    echo.
+    rem Change how to text depending on whether the target model is input already
+    if defined filepathhowtocheck (
+        echo   Add both the individual FTEX texture paths below. The
+        echo   original FTEX should be in its original path structure
+        echo   and the modded FTEX with a custom filename or directory
+        echo   ^(or both^). The custom FTEX must be located within an
+        echo   Assets directory.
+        ) else (
+        echo   Add the model file to be tweaked, followed by both the
+        echo   individual FTEX texture paths below. The original FTEX
+        echo   should be in its original path structure and the modded
+        echo   FTEX with a custom filename or directory ^(or both^). The
+        echo   custom FTEX must be located within an Assets directory.
+        )
+    echo.
+    echo   Paths are auto formatted for the appropriate hash.
+    echo.
+    echo.
+    echo.
+    )
+
+echo   Target Model File _____________________________________
 echo.
 echo.
-echo   Add both single FTEX texture files below, with the 
-echo   original file in its native path and the modded file
-echo   with the desired custom filename or directory path.
-echo   Custom paths must be located in the Assets directory.
+
+:: Target file
+if defined filepath goto :filepathprocessed
+:filepathprompt
+set /p filepath=!BS!  ^> Drag and drop file here:  !BS!
+if not defined filepath (
+    goto :filepathprompt
+    ) else (
+    goto :top
+    )
+
+:: Target file processed
+:filepathprocessed
+set longstr=!filepath!&call:newlines
 echo.
-echo   Paths are auto formatted for the appropriate hash.
 echo.
 echo.
-echo.
+
+:originalpathheader
 echo   Original FTEX Path ____________________________________
 echo.
 echo.
@@ -127,10 +208,11 @@ if not defined originalpath (
     if not x%originalpath:Assets=%==x%originalpath% (
         call :formatpath2 originalpath originalpath
         set originalpathraw=!originalpath!
+        echo !originalpath!
         for /f %%i in ('!gzstoolpath! -d -hwe !originalpath!') do set originalpath=%%i
         ) else (
         rem Root directory path formatting
-        for %%i in (%originalpath%) do (
+        for %%i in (!originalpath!) do (
             set originalpath=%%~ni
             set originalpathraw=/%%~ni%%~xi
             )
@@ -148,10 +230,10 @@ if not defined originalpath (
 
 :: Original FTEX path processed
 :originalpathprocessed
-echo   !originalpathraw!
+set longstr=!originalpathraw!&call:newlines
 echo.
-call :formathex originalpath originalpathpro
-echo   !originalpathpro!
+call :formathex originalpath originalpathhex
+echo   !originalpathhex!
 echo.
 echo.
 echo.
@@ -181,42 +263,48 @@ if not defined custompath (
 
 :: Custom FTEX path processed
 :custompathprocessed
-echo   !custompathraw!
+set longstr=!custompathraw!&call:newlines
 echo.
-call :formathex custompath custompathpro
-echo   !custompathpro!
-echo.
-echo.
-echo.
-echo   Target Model File _____________________________________
-echo.
-echo.
+call :formathex custompath custompathhex
+echo   !custompathhex!
 
-:: Target file
-if defined filepath goto :filepathprocessed
-:filepathprompt
-set /p filepath=!BS!  ^> Drag and drop file here:  !BS!
-if not defined filepath (
-    goto :filepathprompt
-    ) else (
-    !xvi32path! !filepath! /S=!xviscriptpath! "!originalpathpro!" "!custompathpro!"
-    goto :top
-    )
+:: Prepare the temp find and replace script, run the hex editor
+set scriptfile="!scriptdir!HexRepl-temp.xsc"
+set "xviscript=ADR 0!lf!REPLACEALL %%1 BY %%2!lf!EXIT"
+echo !xviscript! > !scriptfile!
+call :datemodified filepath datemodified1
+!xvi32path! !filepath! /S=!scriptfile! "!originalpathhex!" "!custompathhex!"
+call :datemodified filepath datemodified2
 
-:: Target file processed
-:filepathprocessed
-echo   !filepath!
-
-endlocal
+:: Delete the temp script file
+del !scriptfile!
 
 :: Exit
 echo.
 echo.
 echo.
-pause>nul|set /p =!BS!  Modification complete^^! Press any key to close  !BS!
+if /i "!datemodified1!"=="!datemodified2!" (
+    echo   Modification unsuccessful. Check the FTEX paths. It may
+    echo   be the custom hex string already exists in the model
+    echo   file or the original hex string does not.
+    echo.
+    pause>nul|set /p =!BS!  Press any key to close...  !BS!
+    ) else (
+    pause>nul|set /p =!BS!  Modification successful^^! Press any key to close...  !BS!
+    )
 
 :: ------------------------------------ Call Functions -------------------------------------
 :: -----------------------------------------------------------------------------------------
+
+:: Break strings longer than visual window margins into new lines
+:newlines
+    setlocal
+    set longstr=!longstr:"=!
+    echo   !longstr:~0,55!
+    set longstr=!longstr:~55!
+    if defined longstr goto newlines
+    endlocal
+    exit /b 
 
 :: Strip double quotes from input, replace backslashes with forwardslashes
 :formatpath1 <input> <output>
@@ -256,7 +344,20 @@ pause>nul|set /p =!BS!  Modification complete^^! Press any key to close  !BS!
     endlocal
     exit /b
 
-:: ------------------------------------- Program Paths -------------------------------------
+:datemodified <input> <output>
+    set "dmin=!%~1!"
+    for %%a in (!dmin!) do set "dmout=%%~ta"
+    set "%~2=!dmout!"
+    endlocal
+    exit /b
+
+endlocal
+
+:: ------------------------------ User Settings/Program Paths ------------------------------
 :: -----------------------------------------------------------------------------------------
+
+:checksettings
+set showhowto=1
+exit /b
 
 :checkpaths
