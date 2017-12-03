@@ -21,7 +21,13 @@ Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files, the manua
 
 Open the script and follow the prompts. Drag and drop the original FTEX texture file, followed by the modded FTEX file with the custom filename (or directory path, or both), then finally the FMDL/FV2 file to be modified using the hex editor.
 
-Keep in mind modded FTEX files with custom names need to be placed at the minimum anywhere within the `Assets` directory, they won't work if placed in the root directory.
+The script expects a directory structure like that of a unpacked file (ie: beginning from either a root directory or `Assets`), but doesn't mind if you drop a file that contains multiple unpacked file directories within each other since it will strip all but the last occurance of `Assets` for the hash.
+
+As an example in the path below only everything following the last occurance of `Assets` will be hashed when dropped on the script:
+
+`C:\Users\Username\Desktop\chunk0_dat\Assets\tpp\pack\player\fova\plfova_sna0_face4_v00_pftxs\Assets\tpp\chara\sna\Pictures\sna_bdn0_def_bsm.ftex`
+
+For the *Original FTEX Path* prompt files can either come from the root directory (which contains files with already hashed filenames), or from within `Assets` (such as the above example path). For the *Custom FTEX Path* prompt the file must only be located anywhere within `Assets` (even within custom sub-directories), since the hash won't be recognized if located in a root directory.
 
 ### Issues
 
