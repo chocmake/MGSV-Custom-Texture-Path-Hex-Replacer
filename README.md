@@ -24,7 +24,7 @@ The script can launched a few different ways:
 
 - Opening the script by double-clicking it.
 - Dropping an FMDL/FV2 file on its icon.
-- Launching it from an FMDL/FV2 file via a custom [Send To shortcut](https://www.computerhope.com/tips/tip73.htm).
+- Launching it from an FMDL/FV2 file via a custom [Send To](https://www.computerhope.com/tips/tip73.htm) context menu shortcut.
 
 From there follow the prompts.
 
