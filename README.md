@@ -26,3 +26,5 @@ Keep in mind modded FTEX files with custom names need to be placed at the minimu
 ### Issues
 
 Haven't added any detection/escaping for Unicode/problematic characters in input paths, so just be aware if the paths have special characters it might error or fail to input.
+
+In this initial version there's no error checking when processing the model file through XVI32. If the hex strings aren't found XVI32 simply won't modify the file and exit, however the batch script will still state that modification is complete. Will look into this.
