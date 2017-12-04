@@ -26,7 +26,7 @@ The script can launched a few different ways:
 - Dropping an FMDL/FV2 file on its icon.
 - Launching it from an FMDL/FV2 file via a custom [Send To](https://www.computerhope.com/tips/tip73.htm) context menu shortcut.
 
-From there follow the prompts.
+From there follow the prompts. The FTEX paths can either be filled by drag and dropping the files or by pasting the paths into the prompts.
 
 ### Directory structure
 
@@ -42,4 +42,4 @@ For the *Original FTEX Path* prompt a file can come either from its original loc
 
 - Unicode is unsupported. For one since batch seems to have trouble with it for storing the program paths but also importantly as the XVI32 hex editor doesn't appear to read files from paths with Unicode. 
 
-- There's no error checking for the hex editor as it didn't seem to want to report an errorlevel. Perhaps someone may know of a different method for this as it would be useful to first check the existance of the original hex string prior to inputting the next. That said, if a hex string doesn't exist XVI32 will simply not save the file and exit. Because of this I added a simple date modified timestamp comparison check after processing to inform whether the model file was updated or not.
+- There's no error checking for the hex editor as it doesn't report an errorlevel (confirmed by the developer). That said, if a hex string doesn't exist XVI32 will simply not save the file and exit. Because of this I added a simple date modified timestamp comparison check after processing to inform whether the model file was updated or not.
