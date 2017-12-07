@@ -2,7 +2,7 @@
 
 Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files, the manual process of which originally outlined on BobDoleOwndU's [wiki page](http://bobdoleowndu.github.io/mgsv/documentation/customtexturenames.html).
 
-### Requirements
+### Dependancies
 
 - [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases)
 - [XVI32 hex editor](http://www.chmaas.handshake.de/delphi/freeware/xvi32/xvi32.htm)
@@ -42,4 +42,4 @@ For the *Original FTEX Path* prompt a file can come either from its original loc
 
 - Unicode is unsupported. For one since batch seems to have trouble with it for storing the program paths but also importantly as the XVI32 hex editor doesn't appear to read files from paths with Unicode. 
 
-- There's no error checking for the hex editor as it doesn't report an errorlevel (confirmed by the developer). That said, if a hex string doesn't exist XVI32 will simply not save the file and exit. Because of this I added a simple date modified timestamp comparison check after processing to inform whether the model file was updated or not.
+- There's no error checking for the hex editor as it doesn't report an errorlevel (confirmed by the developer). That said, if a hex string doesn't exist XVI32 will simply not save the file and exit. Because of this I added a simple date modified timestamp comparison check after processing to inform whether the model file was updated or not (note: the standard date modified variable in the command line is only minute-accurate so currently if you unpack an FPK and within the same minute use the batch script it will erroneously state that modification is unsuccessful).
