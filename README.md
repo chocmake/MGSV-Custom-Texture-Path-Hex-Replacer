@@ -12,7 +12,7 @@ Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files, the manua
 ### Installation
 
 1. Install the required programs.
-2. Download the zip from the [Releases tab](github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/releases/).
+2. Download the zip from the [Releases tab](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/releases/).
 3. Launch `MGSV-Custom-Texture-Path-Hex-Replacer.bat`.
 4. Drag and drop the installed programs on the window as prompted to save the paths to the script.
 
