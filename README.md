@@ -2,7 +2,7 @@
 
 Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files, the manual process of which originally outlined on BobDoleOwndU's [wiki page](http://bobdoleowndu.github.io/mgsv/documentation/customtexturenames.html).
 
-For an overview of features to this technique, an installation guide, and general usage in more detail see [the wiki](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki). For a thorough tutorial using this technique and batch script click the graphic graphic below.
+For an overview of features to this technique, an installation guide, and general usage in more detail see [the wiki](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki). For a thorough tutorial using this technique and batch script click the graphic below.
 
 [![wiki-guide-banner](https://user-images.githubusercontent.com/34178938/39674411-da52ed2a-518e-11e8-8428-7e9086a57ba3.png)](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki/Re%E2%80%90texturing-a-Supply-Box)
 
