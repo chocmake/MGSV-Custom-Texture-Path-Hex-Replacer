@@ -6,7 +6,7 @@
 :: Requirements:    GzsTool (BobDoleOwndU version), XVI32 hex editor
 :: URL:             https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer
 :: Author:          choc
-:: Version:         0.1.2 (2018-05-03)
+:: Version:         0.2 (2018-05-15)
 
 :: -----------------------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: Script version
-set version=0.1.2
+set version=0.2
 
 :: Command prompt styling (global)
 color F0
@@ -34,7 +34,7 @@ if exist "%temp%" (
     set "scriptdir=%~dp0"
     )
 
-:: Check for user settings, existing program path variables
+:: Check for existing program path variables
 call :checkpaths
 if defined gzstoolpath if defined xvi32path goto :pathsadded
 
@@ -76,7 +76,7 @@ if not defined gzstoolpath (
     goto :topinitial
     )
 :gzstoolpathprocessed
-set longstr=!gzstoolpath!&call:newlines 
+set longstr=!gzstoolpath! & call :newlines 
 
 if defined xvi32path goto :xvi32pathprocessed
 echo.
@@ -94,7 +94,7 @@ if not defined xvi32path (
 :xvi32pathprocessed
 echo.
 echo.
-set longstr=!xvi32path!&call:newlines 
+set longstr=!xvi32path! & call :newlines 
 
 :: Append the paths to end of this script
 set "script=%~f0"
@@ -113,24 +113,33 @@ endlocal
 setlocal EnableExtensions EnableDelayedExpansion
 mode con: cols=60 lines=38
 
-:: Input check if script launched with prior input (file dropped on script, etc)
-set filepath="%~1"
-set "filepath=!filepath:"=!"
-if defined filepath (
-    rem obtain correct path with ampersands but no spaces
-    set "filepath=!cmdcmdline:~0,-1!"
-    set "filepath=!filepath:*" =!"
-    set "filepath=!filepath:"=!"
-    set filepath="!filepath!"
-    for /f "delims=" %%a in ("!filepath!") do (
-        rem obtain any exclamation marks in filename
-        setlocal EnableExtensions DisableDelayedExpansion
-        set "filepath=%%~dpa%%~na%%~xa"
-        )
+:: Check if script launched with prior input (file dropped on script, etc)
+set inputfile="%~1"
+set "inputfile=!inputfile:"=!"
+if defined inputfile (
+    rem Obtain correct path with ampersands but no spaces
+    set "inputfile=!cmdcmdline:~0,-1!"
+    goto :inputfileparse
+    )
+
+:: Escape the input path (has issues as a function call so used goto instead)
+:inputfileparse
+if defined inputfile (
+    set "inputfile=!inputfile:*" =!"
+    set "inputfile=!inputfile:"=!"
+    set inputfile="!inputfile!"
+    for /f "delims=" %%a in ("!inputfile!") do (
+            rem Obtain any exclamation marks in path
+            setlocal EnableExtensions DisableDelayedExpansion
+            set "inputfile=%%~dpa%%~na%%~xa"
+            set "inputfilepath=%%~dpa"
+            set "inputfilename=%%~na%%~xa"
+            )
     setlocal EnableExtensions EnableDelayedExpansion
     rem Quotes must be added outside here else the problematic characters will be stripped from variable 
-    set filepath="!filepath!"
-    set filepathhowtocheck=1
+    set inputfile="!inputfile!"
+    rem Trim trailing backslash for forfiles function and pre-wrap in double quotes
+    set inputfilepath="!inputfilepath:~0,-1!"
     )
 
 :top
@@ -141,19 +150,48 @@ echo   Target Model File _____________________________________
 echo.
 echo.
 
-:: Target file
-if defined filepath goto :filepathprocessed
-:filepathprompt
-set /p filepath=!BS!  ^> Drag and drop file here then press Enter:  !BS!
-if not defined filepath (
-    goto :filepathprompt
+:: Check filetype
+:inputfiletypecheck
+set "errormsg=Error: opened file was not an .fmdl or .fv2, please re-select the correct file and try again."
+if defined inputfile (
+    set "filetype=!inputfile:"=!"
+    if /i not "!filetype:~-4!"=="fmdl" (
+        if /i not "!filetype:~-3!"=="fv2" (
+            rem Error message displayed when wrong filetype was entered in prompt
+            set inputfile=
+            set filetype=
+            set longstr=!errormsg! & call :newlines
+            echo.
+            )
+        )
     ) else (
+    if not defined inputfile (
+        if defined resetprompt (
+            set resetprompt=
+            set longstr=!errormsg! & call :newlines
+            echo.
+            )
+        )
+    )
+
+:: Target file
+if defined inputfile goto :inputfileprocessed
+:inputfileprompt
+rem Setting an initial variable value like this prevents empty prompt values from crashing script
+set "inputfile=foobar"
+set /p inputfile=!BS!  ^> Drag and drop file here then press Enter:  !BS!
+if not defined inputfile (
+    goto :top
+    ) else (
+    goto :inputfileparse
+    set "filetype=!inputfile:"=!" && if /i not "!filetype:~-4!"=="fmdl" && if /i not "!filetype:~-3!"=="fv2" && set resetprompt=1 goto :top
+    set filetype=
     goto :top
     )
 
 :: Target file processed
-:filepathprocessed
-set longstr=!filepath!&call:newlines
+:inputfileprocessed
+set longstr=!inputfile! & call :newlines
 echo.
 echo.
 echo.
@@ -163,16 +201,26 @@ echo   Original FTEX Path ____________________________________
 echo.
 echo.
 
+:: Error message displayed when wrong filetype was entered in prompt
+if not defined originalpath call :errormsg
+
 :: Original FTEX path
 if defined originalpath goto :originalpathprocessed
 :originalpathprompt
+set "originalpath=foobar"
 set /p originalpath=!BS!  ^> Drag and drop file here then press Enter:  !BS!
 if not defined originalpath (
-    goto :originalpathprompt
+    goto :top
     ) else (
     call :formatpath1 originalpath originalpath
+    rem Check filetype
+    if /i not "!originalpath:~-4!"=="ftex" (
+        set originalpath=
+        set resetprompt=1
+        goto :top
+        )
     rem Check if the texture file is within Assets or not
-    if not x%originalpath:Assets=%==x%originalpath% (
+    if not %originalpath:Assets=%==%originalpath% (
         call :formatpath2 originalpath originalpath
         set originalpathraw=!originalpath!
         echo !originalpath!
@@ -197,7 +245,7 @@ if not defined originalpath (
 
 :: Original FTEX path processed
 :originalpathprocessed
-set longstr=!originalpathraw!&call:newlines
+set longstr=!originalpathraw! & call :newlines
 echo.
 call :formathex originalpath originalpathhex
 echo   !originalpathhex!
@@ -208,19 +256,30 @@ echo   Custom FTEX Path ______________________________________
 echo.
 echo.
 
+:: Error message displayed when wrong filetype was entered in prompt
+if not defined custompath call :errormsg
+
 :: Custom FTEX path
 if defined custompath goto :custompathprocessed
 :custompathprompt
+set "custompath=foobar"
 set /p custompath=!BS!  ^> Drag and drop file here then press Enter:  !BS!
 if not defined custompath (
-    goto :custompathprompt
+    goto :top
     ) else (
     call :formatpath1 custompath custompath
+    rem Check filetype
+    if /i not "!custompath:~-4!"=="ftex" (
+        set custompath=
+        set resetprompt=1
+        goto :top
+        )
     rem Check if the texture file is within Assets or not
-    if not x%custompath:Assets=%==x%custompath% (
+    if not %custompath:Assets=%==%custompath% (
         call :formatpath2 custompath custompath
         ) else (
         set custompath=
+        set assetserror=1
         goto :top
         )
         set custompathraw=!custompath!
@@ -230,7 +289,7 @@ if not defined custompath (
 
 :: Custom FTEX path processed
 :custompathprocessed
-set longstr=!custompathraw!&call:newlines
+set longstr=!custompathraw! & call :newlines
 echo.
 call :formathex custompath custompathhex
 echo   !custompathhex!
@@ -239,31 +298,53 @@ echo   !custompathhex!
 set scriptfile="!scriptdir!HexRepl-temp.xsc"
 set "xviscript=ADR 0!lf!REPLACEALL %%1 BY %%2!lf!EXIT"
 echo !xviscript! > !scriptfile!
-call :datemodified filepath datemodified1
-!xvi32path! !filepath! /S=!scriptfile! "!originalpathhex!" "!custompathhex!"
-call :datemodified filepath datemodified2
+call :datemodified inputfile datemodified1
+!xvi32path! !inputfile! /S=!scriptfile! "!originalpathhex!" "!custompathhex!"
+call :datemodified inputfile datemodified2
 
 :: Delete the temp script file
 del !scriptfile!
 
-:: Exit
+:: Modification result
 echo.
 echo.
 echo.
 if /i "!datemodified1!"=="!datemodified2!" (
-    echo   Modification unsuccessful. Check the FTEX paths. It may
-    echo   be the custom hex string already exists in the model
-    echo   file or the original hex string does not.
+    set "modunsuccessful=Modification unsuccessful. Possibly the 'Original FTEX Path' entered may not exist in the target file, or the texture path has already been changed."
+    set longstr=!modunsuccessful! & call :newlines
     echo.
-    pause>nul|set /p =!BS!  Press any key to close...  !BS!
+    choice /m "!BS!  Try again? (Yes/No)  !BS!" /n /c yn
+    if errorlevel 2 exit /b
+    if errorlevel 1 (
+        set originalpath=
+        set custompath=
+        goto :top
+        )
     ) else (
     pause>nul|set /p =!BS!  Modification successful^^! Press any key to close...  !BS!
     )
 
-:: ------------------------------------ Call Functions -------------------------------------
+:: --------------------------------------- Functions ---------------------------------------
 :: -----------------------------------------------------------------------------------------
 
-:: Break strings longer than visual window margins into new lines
+:: Error message for incorrect texture filetype
+:errormsg
+    if defined resetprompt (
+        set resetprompt=
+        set "errormsg=Error: file entered was not a .ftex, please select the correct texture and try again."
+        set longstr=!errormsg! & call :newlines
+        echo.
+        )
+    if defined assetserror (
+        set assetserror=
+        set "errormsg=Error: texture entered was not contained within an Assets directory, please place custom texture within an Assets directory and try again."
+        set longstr=!errormsg! & call :newlines
+        echo.
+        )
+    endlocal
+    exit /b
+
+:: Visually format strings longer than window width into new lines with padding
 :newlines
     setlocal
     set longstr=!longstr:"=!
@@ -273,15 +354,15 @@ if /i "!datemodified1!"=="!datemodified2!" (
     endlocal
     exit /b 
 
-:: Strip double quotes from input, replace backslashes with forwardslashes
-:formatpath1 <input> <output>
+:: Strip double quotes from texture path, replace backslashes with forwardslashes
+:formatpath1
     set format=!%~1:"=!
     set %~2=!format:\=/!
     endlocal
     exit /b
 
-:: Crudely truncates path to last occurrence of parent 'Assets' directory, assumes unpacked structure no more than 5 levels deep
-:formatpath2 <input> <output>
+:: Truncate texture path to last occurrence of parent 'Assets' directory (assumes max 5 levels deep)
+:formatpath2
     set "format=!%~1:*Assets/=!"
     set "format=!format:*Assets/=!"
     set "format=!format:*Assets/=!"
@@ -291,8 +372,8 @@ if /i "!datemodified1!"=="!datemodified2!" (
     endlocal
     exit /b
 
-:: Reverses hex byte order, formats in uppercase
-:formathex <input> <output>
+:: Reverse hex byte order, format in uppercase
+:formathex
     set "hex=!%~1!"
     set hex1=!hex:~-2!
     set hex2=!hex:~-4,-2!
@@ -311,16 +392,22 @@ if /i "!datemodified1!"=="!datemodified2!" (
     endlocal
     exit /b
 
-:datemodified <input> <output>
-    set "dmin=!%~1!"
-    for %%a in (!dmin!) do set "dmout=%%~ta"
-    set "%~2=!dmout!"
+:: Check the target file timestamp
+:datemodified
+    for %%f in ("%~1") do (
+        for /f "tokens=1,* delims=|" %%k in (
+            'forfiles /p !inputfilepath! /m !inputfilename! /c "cmd /c echo @fdate @ftime"'
+            ) do (
+            set modified=%%k
+            )
+        )
+    set "%~2=!modified!"
     endlocal
     exit /b
 
 endlocal
 
-:: ------------------------------ User Settings/Program Paths ------------------------------
+:: ------------------------------------ Program Paths --------------------------------------
 :: -----------------------------------------------------------------------------------------
 
 :checkpaths
