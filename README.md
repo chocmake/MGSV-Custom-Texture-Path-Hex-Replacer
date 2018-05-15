@@ -44,6 +44,4 @@ From there follow the prompts. The FTEX paths can either be filled by drag and d
 
 ### Known issues
 
-- Unicode is unsupported. For one since batch seems to have trouble with it for storing the program paths but also importantly as the XVI32 hex editor doesn't appear to read files from paths with Unicode. 
-
-- If the model file was previously modified (or created via unpacking) within the same minute it's edited in the batch script the message will state the process has been unsuccessful even if it has been successful. This is due to the only minute-accurate Date Modified timestamp variable available to the command line, and the lack of error reporting from the hex editor used.
+- Unicode is unsupported. For one since batch seems to have trouble with it for storing the program paths but also importantly as the XVI32 hex editor doesn't appear to read files from paths with Unicode.
