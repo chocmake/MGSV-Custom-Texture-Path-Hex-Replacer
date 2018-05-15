@@ -152,7 +152,7 @@ echo.
 
 :: Check filetype
 :inputfiletypecheck
-set "errormsg=Error: opened file was not an .fmdl or .fv2, please re-select the correct file and try again."
+set "errormsg=Error: file entered was not a .fmdl or .fv2, please select the correct file and try again."
 if defined inputfile (
     set "filetype=!inputfile:"=!"
     if /i not "!filetype:~-4!"=="fmdl" (
