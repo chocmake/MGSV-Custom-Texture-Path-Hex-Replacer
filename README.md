@@ -19,7 +19,7 @@ Example GIF of script usage:
 - [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases/latest)
 - [XVI32 hex editor](http://www.chmaas.handshake.de/delphi/freeware/xvi32/xvi32.htm)
 
-> Note: for those who might have an older version of BobDoleOwndU's GzsTool make sure to grab the latest version linked above otherwise the hashing function won't work.
+> Note: for those who have an older version of BobDoleOwndU's GzsTool (prior to v0.5.2.4b) make sure to grab the latest version linked above otherwise the hashing function won't work.
 
 ***
 
