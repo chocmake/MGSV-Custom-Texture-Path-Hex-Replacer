@@ -16,8 +16,10 @@ Example GIF of script usage:
 
 ### Dependancies
 
-- [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases)
+- [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases/latest)
 - [XVI32 hex editor](http://www.chmaas.handshake.de/delphi/freeware/xvi32/xvi32.htm)
+
+> Note: for those who might have an older version of BobDoleOwndU's GzsTool fork make sure to grab the latest version linked above otherwise the hashing function won't work.
 
 ***
 
