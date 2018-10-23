@@ -1,6 +1,6 @@
 # MGSV Custom Texture Path Hex Replacer
 
-Simplifies custom FTEX texture path hex replacement in FMDL files for Metal Gear Solid V: The Phantom Pain, the manual process of which originally outlined on BobDoleOwndU's [wiki page](http://bobdoleowndu.github.io/mgsv/documentation/customtexturenames.html).
+Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files for Metal Gear Solid V: The Phantom Pain, the manual process of which originally outlined on BobDoleOwndU's [wiki page](http://bobdoleowndu.github.io/mgsv/documentation/customtexturenames.html).
 
 For an overview of features to this technique, an installation guide, and general usage in more detail see [the wiki](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki). For a thorough tutorial using this technique and batch script click the graphic below.
 
@@ -37,8 +37,8 @@ Example GIF of script usage:
 The script can launched a few different ways:
 
 - Opening the script by double-clicking it.
-- Dropping an FMDL file on its icon.
-- Launching it from an FMDL file via a custom [Send To](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki/Using-the-script#optional-adding-a-shortcut-to-the-send-to-menu) context menu shortcut.
+- Dropping an FMDL/FV2 file on its icon.
+- Launching it from an FMDL/FV2 file via a custom [Send To](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki/Using-the-script#optional-adding-a-shortcut-to-the-send-to-menu) context menu shortcut.
 
 From there follow the prompts. The FTEX paths can either be filled by drag and dropping the files or by pasting the paths into the prompts.
 
