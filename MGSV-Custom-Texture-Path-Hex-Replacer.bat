@@ -3,10 +3,10 @@
 
 :: Name:            MGSV Custom Texture Path Hex Replacer
 :: Description:     Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files
-:: Requirements:    GzsTool (BobDoleOwndU version), XVI32 hex editor
+:: Requirements:    Latest versions of GzsTool (BobDoleOwndU version), XVI32 hex editor
 :: URL:             https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer
 :: Author:          choc
-:: Version:         0.2 (2018-05-15)
+:: Version:         0.2.1 (2018-10-24)
 
 :: -----------------------------------------------------------------------------------------
 
@@ -14,11 +14,12 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 :: Script version
-set version=0.2
+set version=0.2.1
 
 :: Command prompt styling (global)
 color F0
 title MGSV Custom Texture Path Hex Replacer ^(v!version!^)
+mode con: cols=60 lines=30
 
 :: Prompt padding
 for /f %%a in ('"prompt $H &echo on &for %%B in (1) do rem"') do set BS=%%a
@@ -34,75 +35,115 @@ if exist "%temp%" (
     set "scriptdir=%~dp0"
     )
 
-:: Check for existing program path variables
+:: ---------------------------------- Program Paths Check ----------------------------------
+:: -----------------------------------------------------------------------------------------
+
 call :checkpaths
-if defined gzstoolpath if defined xvi32path goto :pathsadded
+if exist !gzstoolpath! if exist !xvi32path! (
+    goto :pathsadded
+    )
+:: Check if the existing path variables are valid (if or)
+if defined gzstoolpath     set definedcheck=1 && set gzstoolpathcheck=1
+if defined xvi32path       set definedcheck=1 && set xvi32pathcheck=1
+if not exist !gzstoolpath! set existcheck=1 && set gzstoolpathcheck=
+if not exist !xvi32path!   set existcheck=1 && set xvi32pathcheck=
+
+:: Update programs text
+set "pad=  "
+set gzstooltext=- GzsTool ^(BobDoleOwndU version^)
+set xvi32text=- XVI32 hex editor
+if not defined gzstoolpathcheck set setuplist=!pad!!gzstooltext!
+if not defined xvi32pathcheck set setuplist=!pad!!xvi32text!
+if not defined gzstoolpathcheck if not defined xvi32pathcheck (
+    set setuplist=!pad!!gzstooltext!!lf!!pad!!xvi32text!
+    set plural=s
+    )
+
+if defined existcheck (
+    if defined definedcheck (
+        set setupintro=!lf!!lf!!pad!Program Setup Update __________________________________!lf!!lf!!lf!!pad!Looks like the following program!plural! moved location:!lf!!lf!!setuplist!!lf!!lf!!pad!Follow the prompts below to update the path!plural!.!lf!!lf!!lf!!lf!!pad!Program Paths _________________________________________!lf!!lf!
+        )
+    if not defined definedcheck (
+        set setupintro=!lf!!lf!!pad!Initial Setup _________________________________________!lf!!lf!!lf!!pad!You'll first need to grab the latest of the following:!lf!!lf!!pad!!gzstooltext!!lf!!pad!!xvi32text!!lf!!lf!!pad!Then follow the prompts below to store their paths.!lf!!lf!!lf!!lf!!pad!Program Paths _________________________________________!lf!!lf!
+        )
+    goto :topinitial
+    )
 
 :: ------------------------------ Program Paths Initial Setup ------------------------------
 :: -----------------------------------------------------------------------------------------
 
-:: Command prompt styling
-mode con: cols=60 lines=30
-
 :topinitial
-echo.
-echo.
-echo   Initial Setup _________________________________________
-echo.
-echo.
-echo   You'll first need to grab the following programs:
-echo.
-echo   - GzsTool (BobDoleOwndU version)
-echo   - XVI32 hex editor
-echo.
-echo   Then follow the prompts below to store their paths.
-echo.
-echo.
-echo.
-echo   Program Paths _________________________________________
-echo.
-echo.
-
+echo !setupintro!
+    
 :: Drag and drop prompts
-if defined gzstoolpath goto :gzstoolpathprocessed
+if defined gzstoolpathcheck goto :gzstoolpathpromptskip
+if exist !gzstoolpath! goto :gzstoolpathprocessed
+if defined gzstoolpatherror set longstr=!errormsg! & call :newlines & echo. & echo.
 echo   Drag and drop GzsTool.exe here then press Enter:
 echo.
 :gzstoolprompt
 set /p gzstoolpath=!BS!  
-if not defined gzstoolpath (
+if not exist !gzstoolpath! (
     goto :gzstoolprompt
     ) else (
+    for %%i in (!gzstoolpath!) do (
+            set programnamecheck=%%~ni
+            )
+    if /i not "!programnamecheck!"=="GzsTool" (
+        set "errormsg=Error: program entered was not GzsTool, please select the correct program and try again."
+        set gzstoolpath=
+        set gzstoolpatherror=1
+        ) else (
+        set gzstoolpatherror=
+        )
     cls
     goto :topinitial
     )
 :gzstoolpathprocessed
-set longstr=!gzstoolpath! & call :newlines 
+set longstr=!gzstoolpath! & call :newlines & echo. & echo.
 
-if defined xvi32path goto :xvi32pathprocessed
-echo.
-echo.
+:gzstoolpathpromptskip
+if defined xvi32pathcheck goto :xvi32pathpromptskip
+if exist !xvi32path! goto :xvi32pathprocessed
+if defined xvi32patherror set longstr=!errormsg! & call :newlines & echo. & echo.
 echo   Drag and drop XVI32.exe here then press Enter:
 echo.
 :xvi32pathprompt
 set /p xvi32path=!BS!  
-if not defined xvi32path (
+if not exist !xvi32path! (
     goto :xvi32pathprompt
     ) else (
+    for %%i in (!xvi32path!) do (
+            set programnamecheck=%%~ni
+            )
+    if /i not "!programnamecheck!"=="XVI32" (
+        set "errormsg=Error: program entered was not XVI32, please select the correct program and try again."
+        set xvi32path=
+        set xvi32patherror=1
+        ) else (
+        set xvi32patherror=
+        )
     cls
     goto :topinitial
     )
 :xvi32pathprocessed
-echo.
-echo.
-set longstr=!xvi32path! & call :newlines 
+set longstr=!xvi32path! & call :newlines & echo. & echo.
 
 :: Append the paths to end of this script
+:xvi32pathpromptskip
 set "script=%~f0"
 setlocal EnableDelayedExpansion
+if defined gzstoolpathcheck (
+    >>"!script!" echo set xvi32path=!xvi32path!
+    goto :appended
+    )
+if defined xvi32pathcheck (
+    >>"!script!" echo set gzstoolpath=!gzstoolpath!
+    goto :appended
+    )
 >>"!script!" echo set gzstoolpath=!gzstoolpath!
 >>"!script!" echo set xvi32path=!xvi32path!
-echo.
-echo.
+:appended
 pause>nul|set /p =!BS!  Setup complete^^! Press any key to continue...  !BS!&& mode con: cols=60 lines=50
 endlocal
 
@@ -146,7 +187,7 @@ if defined inputfile (
 cls
 echo.
 echo.
-echo   Target Model File _____________________________________
+echo   Target File ___________________________________________
 echo.
 echo.
 
@@ -214,6 +255,7 @@ if not defined originalpath (
     ) else (
     call :formatpath1 originalpath originalpath
     rem Check filetype
+    call :trimwhitespace originalpath originalpath
     if /i not "!originalpath:~-4!"=="ftex" (
         set originalpath=
         set resetprompt=1
@@ -269,6 +311,7 @@ if not defined custompath (
     ) else (
     call :formatpath1 custompath custompath
     rem Check filetype
+    call :trimwhitespace custompath custompath
     if /i not "!custompath:~-4!"=="ftex" (
         set custompath=
         set resetprompt=1
@@ -346,13 +389,42 @@ if /i "!datemodified1!"=="!datemodified2!" (
 
 :: Visually format strings longer than window width into new lines with padding
 :newlines
-    setlocal
-    set longstr=!longstr:"=!
-    echo   !longstr:~0,55!
-    set longstr=!longstr:~55!
-    if defined longstr goto newlines
+    call :varlength longstr longstrlength
+    if !longstrlength! gtr 55 (
+        set longstr=!longstr:"=!
+        echo   !longstr:~0,55!
+        set longstr=!longstr:~55!
+        if defined longstr goto :newlines
+        )
+    if !longstrlength! leq 55 (
+        echo   !longstr:"=!
+        )
     endlocal
     exit /b 
+
+:: Output number of characters in variable
+:varlength
+    set "s=!%~1!#"
+    set "len=0"
+    for %%P in (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) do (
+        if "!s:~%%P,1!" NEQ "" ( 
+            set /a "len+=%%P"
+            set "s=!s:~%%P!"
+        )
+    )
+    endlocal
+    rem for some reason the function adds 1 additional number to result, subtracted below
+    set /a "len=!len!-1"
+    set "%~2=!len!"
+    exit /b
+
+:: Trim trailing whitespace from texture path (in cases where it's copied from text file)
+:trimwhitespace
+    set trim=!%~1!
+    for /f "tokens=* delims= " %%a in ('echo %trim% ') do set trim=%%a
+    set %~2=!trim:~0,-1!
+    endlocal
+    exit /b
 
 :: Strip double quotes from texture path, replace backslashes with forwardslashes
 :formatpath1
