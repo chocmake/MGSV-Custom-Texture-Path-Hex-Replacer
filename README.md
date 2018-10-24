@@ -10,7 +10,7 @@ For an overview of features to this technique, an installation guide, and genera
 
 Example GIF of script usage:
 
-![script in practice](https://user-images.githubusercontent.com/34178938/39673073-f88aea88-5178-11e8-836d-08b1bda91ac2.gif)
+![script in practice](https://user-images.githubusercontent.com/34178938/47422782-30b26580-d7cf-11e8-8347-f0e920e235b5.gif)
 
 ***
 
