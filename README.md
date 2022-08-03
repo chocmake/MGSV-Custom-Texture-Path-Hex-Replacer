@@ -42,6 +42,8 @@ The script can launched a few different ways:
 
 From there follow the prompts. The FTEX paths can either be filled by drag and dropping the files or by pasting the paths into the prompts.
 
+> Tip: if you run into any problems check if the [Troubleshooting](https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer/wiki/Troubleshooting) section of the wiki covers it.
+
 ***
 
 ### Ground Zeroes
