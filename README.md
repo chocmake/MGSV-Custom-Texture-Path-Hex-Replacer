@@ -19,7 +19,7 @@ Example GIF of script usage:
 - [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases/latest) or [QuickHash](https://github.com/BobDoleOwndU/QuickHash/releases/latest)
 - [XVI32 hex editor](http://www.chmaas.handshake.de/delphi/freeware/xvi32/xvi32.htm)
 
-> Note: As of v0.3 of the script there's a setting to use QuickHash for the hex function instead. Open the script in a text editor and change `set usequickhash=no` to `set usequickhash=yes`.
+> Note: As of v0.3 of the script there's a setting to use QuickHash for the hex function instead. If you'd prefer to use it open the script in a text editor and change `set usequickhash=no` to `set usequickhash=yes`.
 
 ***
 
