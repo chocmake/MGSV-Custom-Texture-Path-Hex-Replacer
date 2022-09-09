@@ -3,478 +3,751 @@
 
 :: Name:            MGSV Custom Texture Path Hex Replacer
 :: Description:     Simplifies custom FTEX texture path hex replacement in FMDL/FV2 files
-:: Requirements:    Latest versions of GzsTool (BobDoleOwndU version), XVI32 hex editor
+:: Requirements:    GzsTool (BobDoleOwndU version) or QuickHash, XVI32 (hex editor)
 :: URL:             https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer
 :: Author:          choc
-:: Version:         0.2.1 (2018-10-24)
+:: Version:         0.3 (2022-09-07)
 
 :: -----------------------------------------------------------------------------------------
 
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
 
-:: Script version
-set version=0.2.1
-
-:: Command prompt styling (global)
-color F0
-title MGSV Custom Texture Path Hex Replacer ^(v!version!^)
-mode con: cols=60 lines=30
-
-:: Prompt padding
-for /f %%a in ('"prompt $H &echo on &for %%B in (1) do rem"') do set BS=%%a
-
-:: New line character variable (two new lines required below)
-set lf=^
-
-
-:: Set temp directory for self-generated script files
-if exist "%temp%" (
-    set "scriptdir=%temp%\"
-    ) else (
-    set "scriptdir=%~dp0"
-    )
-
-:: ---------------------------------- Program Paths Check ----------------------------------
+:: --------------------------------------- Settings ----------------------------------------
 :: -----------------------------------------------------------------------------------------
 
-call :checkpaths
-if exist !gzstoolpath! if exist !xvi32path! (
-    goto :pathsadded
-    )
-:: Check if the existing path variables are valid (if or)
-if defined gzstoolpath     set definedcheck=1 && set gzstoolpathcheck=1
-if defined xvi32path       set definedcheck=1 && set xvi32pathcheck=1
-if not exist !gzstoolpath! set existcheck=1 && set gzstoolpathcheck=
-if not exist !xvi32path!   set existcheck=1 && set xvi32pathcheck=
+:: If enabled will ask for and use QuickHash instead of BobDoleOwndU's version of GzsTool
+:: for the hashing function.
+set usequickhash=no
 
-:: Update programs text
-set "pad=  "
-set gzstooltext=- GzsTool ^(BobDoleOwndU version^)
-set xvi32text=- XVI32 hex editor
-if not defined gzstoolpathcheck set setuplist=!pad!!gzstooltext!
-if not defined xvi32pathcheck set setuplist=!pad!!xvi32text!
-if not defined gzstoolpathcheck if not defined xvi32pathcheck (
-    set setuplist=!pad!!gzstooltext!!lf!!pad!!xvi32text!
-    set plural=s
-    )
+:: If enabled will offer a prompt to clear the FTEX paths and start again with the same
+:: target file, after a successful modification. Useful for allowing more texture paths to
+:: be edited during a single script session.
+set promptaftersuccess=no
 
-if defined existcheck (
-    if defined definedcheck (
-        set setupintro=!lf!!lf!!pad!Program Setup Update __________________________________!lf!!lf!!lf!!pad!Looks like the following program!plural! moved location:!lf!!lf!!setuplist!!lf!!lf!!pad!Follow the prompts below to update the path!plural!.!lf!!lf!!lf!!lf!!pad!Program Paths _________________________________________!lf!!lf!
-        )
-    if not defined definedcheck (
-        set setupintro=!lf!!lf!!pad!Initial Setup _________________________________________!lf!!lf!!lf!!pad!You'll first need to grab the latest of the following:!lf!!lf!!pad!!gzstooltext!!lf!!pad!!xvi32text!!lf!!lf!!pad!Then follow the prompts below to store their paths.!lf!!lf!!lf!!lf!!pad!Program Paths _________________________________________!lf!!lf!
-        )
-    goto :topinitial
-    )
+:: Script window color scheme
+:: Valid values: light, dark
+set colorscheme=light
 
-:: ------------------------------ Program Paths Initial Setup ------------------------------
+:: ---------------------------------------- Script -----------------------------------------
 :: -----------------------------------------------------------------------------------------
 
-:topinitial
-echo !setupintro!
-    
-:: Drag and drop prompts
-if defined gzstoolpathcheck goto :gzstoolpathpromptskip
-if exist !gzstoolpath! goto :gzstoolpathprocessed
-if defined gzstoolpatherror set longstr=!errormsg! & call :newlines & echo. & echo.
-echo   Drag and drop GzsTool.exe here then press Enter:
-echo.
-:gzstoolprompt
-set /p gzstoolpath=!BS!  
-if not exist !gzstoolpath! (
-    goto :gzstoolprompt
+setlocal enableextensions enabledelayedexpansion
+
+call :initformat
+call :scriptargs
+if /i not "!usequickhash:~0,1!"=="n" (
+    call :setupcheck QuickHash XVI32
     ) else (
-    for %%i in (!gzstoolpath!) do (
-            set programnamecheck=%%~ni
-            )
-    if /i not "!programnamecheck!"=="GzsTool" (
-        set "errormsg=Error: program entered was not GzsTool, please select the correct program and try again."
-        set gzstoolpath=
-        set gzstoolpatherror=1
-        ) else (
-        set gzstoolpatherror=
-        )
-    cls
-    goto :topinitial
+    call :setupcheck GzsTool XVI32
     )
-:gzstoolpathprocessed
-set longstr=!gzstoolpath! & call :newlines & echo. & echo.
 
-:gzstoolpathpromptskip
-if defined xvi32pathcheck goto :xvi32pathpromptskip
-if exist !xvi32path! goto :xvi32pathprocessed
-if defined xvi32patherror set longstr=!errormsg! & call :newlines & echo. & echo.
-echo   Drag and drop XVI32.exe here then press Enter:
-echo.
-:xvi32pathprompt
-set /p xvi32path=!BS!  
-if not exist !xvi32path! (
-    goto :xvi32pathprompt
-    ) else (
-    for %%i in (!xvi32path!) do (
-            set programnamecheck=%%~ni
-            )
-    if /i not "!programnamecheck!"=="XVI32" (
-        set "errormsg=Error: program entered was not XVI32, please select the correct program and try again."
-        set xvi32path=
-        set xvi32patherror=1
-        ) else (
-        set xvi32patherror=
-        )
-    cls
-    goto :topinitial
+:inputs
+if not "[%~1]"=="[]" (
+    call :cmdheightmanual "!cmdheight!"
+    call :input
+    call :cmdheight "input"
     )
-:xvi32pathprocessed
-set longstr=!xvi32path! & call :newlines & echo. & echo.
+:inputprompts
+call :cmdheightmanual "!cmdheight!"
 
-:: Append the paths to end of this script
-:xvi32pathpromptskip
-set "script=%~f0"
-setlocal EnableDelayedExpansion
-if defined gzstoolpathcheck (
-    >>"!script!" echo set xvi32path=!xvi32path!
-    goto :appended
-    )
-if defined xvi32pathcheck (
-    >>"!script!" echo set gzstoolpath=!gzstoolpath!
-    goto :appended
-    )
->>"!script!" echo set gzstoolpath=!gzstoolpath!
->>"!script!" echo set xvi32path=!xvi32path!
-:appended
-pause>nul|set /p =!BS!  Setup complete^^! Press any key to continue...  !BS!&& mode con: cols=60 lines=50
-endlocal
+call :inputprompt input
+call :inputprompt ftexorig
+call :hex ftexorig
+set "finalinputprompt=1"
+call :inputprompt ftexcustom
+call :hex ftexcustom
+call :hexscript
 
-:: --------------------------------- The Rest of the Script --------------------------------
+exit
+
+:: ----------------------------------------- Calls -----------------------------------------
 :: -----------------------------------------------------------------------------------------
 
-:pathsadded
-setlocal EnableExtensions EnableDelayedExpansion
-mode con: cols=60 lines=38
-
-:: Check if script launched with prior input (file dropped on script, etc)
-set inputfile="%~1"
-set "inputfile=!inputfile:"=!"
-if defined inputfile (
-    rem Obtain correct path with ampersands but no spaces
-    set "inputfile=!cmdcmdline:~0,-1!"
-    goto :inputfileparse
-    )
-
-:: Escape the input path (has issues as a function call so used goto instead)
-:inputfileparse
-if defined inputfile (
-    set "inputfile=!inputfile:*" =!"
-    set "inputfile=!inputfile:"=!"
-    set inputfile="!inputfile!"
-    for /f "delims=" %%a in ("!inputfile!") do (
-            rem Obtain any exclamation marks in path
-            setlocal EnableExtensions DisableDelayedExpansion
-            set "inputfile=%%~dpa%%~na%%~xa"
-            set "inputfilepath=%%~dpa"
-            set "inputfilename=%%~na%%~xa"
+:choice
+    setlocal disabledelayedexpansion
+    set "n=0" & set "c=" & set "e=" & set "map=%~1"
+    if not defined map endlocal & exit /b 0
+    for /f "eol=1 delims=" %%i in ('xcopy /lwq "%~f0" :\') do set "c=%%i"
+    set "c=%c:~-1%"
+    if defined c (
+        for /f delims^=^ eol^= %%i in ('cmd /von /u /c "echo !map!"^|find /v ""^|findstr .') do (
+            set /a "n += 1" & set "e=%%i"
+            setlocal enabledelayedexpansion
+            if /i "!e!"=="!c!" (
+                echo !c!
+                for /f %%j in ("!n!") do endlocal & endlocal & exit /b %%j
+                )
+            endlocal
             )
-    setlocal EnableExtensions EnableDelayedExpansion
-    rem Quotes must be added outside here else the problematic characters will be stripped from variable 
-    set inputfile="!inputfile!"
-    rem Trim trailing backslash for forfiles function and pre-wrap in double quotes
-    set inputfilepath="!inputfilepath:~0,-1!"
-    )
-
-:top
-cls
-echo.
-echo.
-echo   Target File ___________________________________________
-echo.
-echo.
-
-:: Check filetype
-:inputfiletypecheck
-set "errormsg=Error: file entered was not a .fmdl or .fv2, please select the correct file and try again."
-if defined inputfile (
-    set "filetype=!inputfile:"=!"
-    if /i not "!filetype:~-4!"=="fmdl" (
-        if /i not "!filetype:~-3!"=="fv2" (
-            rem Error message displayed when wrong filetype was entered in prompt
-            set inputfile=
-            set filetype=
-            set longstr=!errormsg! & call :newlines
-            echo.
-            )
-        )
-    ) else (
-    if not defined inputfile (
-        if defined resetprompt (
-            set resetprompt=
-            set longstr=!errormsg! & call :newlines
-            echo.
-            )
-        )
-    )
-
-:: Target file
-if defined inputfile goto :inputfileprocessed
-:inputfileprompt
-rem Setting an initial variable value like this prevents empty prompt values from crashing script
-set "inputfile=foobar"
-set /p inputfile=!BS!  ^> Drag and drop file here then press Enter:  !BS!
-if not defined inputfile (
-    goto :top
-    ) else (
-    goto :inputfileparse
-    set "filetype=!inputfile:"=!" && if /i not "!filetype:~-4!"=="fmdl" && if /i not "!filetype:~-3!"=="fv2" && set resetprompt=1 goto :top
-    set filetype=
-    goto :top
-    )
-
-:: Target file processed
-:inputfileprocessed
-set longstr=!inputfile! & call :newlines
-echo.
-echo.
-echo.
-
-:originalpathheader
-echo   Original FTEX Path ____________________________________
-echo.
-echo.
-
-:: Error message displayed when wrong filetype was entered in prompt
-if not defined originalpath call :errormsg
-
-:: Original FTEX path
-if defined originalpath goto :originalpathprocessed
-:originalpathprompt
-set "originalpath=foobar"
-set /p originalpath=!BS!  ^> Drag and drop file here then press Enter:  !BS!
-if not defined originalpath (
-    goto :top
-    ) else (
-    call :formatpath1 originalpath originalpath
-    rem Check filetype
-    call :trimwhitespace originalpath originalpath
-    if /i not "!originalpath:~-4!"=="ftex" (
-        set originalpath=
-        set resetprompt=1
-        goto :top
-        )
-    rem Check if the texture file is within Assets or not
-    if not %originalpath:Assets=%==%originalpath% (
-        call :formatpath2 originalpath originalpath
-        set originalpathraw=!originalpath!
-        echo !originalpath!
-        for /f %%i in ('!gzstoolpath! -d -hwe !originalpath!') do set originalpath=%%i
         ) else (
-        rem Root directory path formatting
-        for %%i in (!originalpath!) do (
-            set originalpath=%%~ni
-            set originalpathraw=/%%~ni%%~xi
-            )
-        if "!originalpath:~12,1!"=="" (
-            set originalpath=68!originalpath!
-            ) else (
-            if /i "!originalpath:~0,1!"=="1" set originalpath=69!originalpath:~1!
-            if /i "!originalpath:~0,1!"=="2" set originalpath=6A!originalpath:~1!
-            if /i "!originalpath:~0,1!"=="3" set originalpath=6B!originalpath:~1!
-            )
-        set originalpath=15!originalpath!
+        rem Action if Enter pressed
+        endlocal & exit /b 0
         )
-        goto :top
-    )
-
-:: Original FTEX path processed
-:originalpathprocessed
-set longstr=!originalpathraw! & call :newlines
-echo.
-call :formathex originalpath originalpathhex
-echo   !originalpathhex!
-echo.
-echo.
-echo.
-echo   Custom FTEX Path ______________________________________
-echo.
-echo.
-
-:: Error message displayed when wrong filetype was entered in prompt
-if not defined custompath call :errormsg
-
-:: Custom FTEX path
-if defined custompath goto :custompathprocessed
-:custompathprompt
-set "custompath=foobar"
-set /p custompath=!BS!  ^> Drag and drop file here then press Enter:  !BS!
-if not defined custompath (
-    goto :top
-    ) else (
-    call :formatpath1 custompath custompath
-    rem Check filetype
-    call :trimwhitespace custompath custompath
-    if /i not "!custompath:~-4!"=="ftex" (
-        set custompath=
-        set resetprompt=1
-        goto :top
-        )
-    rem Check if the texture file is within Assets or not
-    if not %custompath:Assets=%==%custompath% (
-        call :formatpath2 custompath custompath
-        ) else (
-        set custompath=
-        set assetserror=1
-        goto :top
-        )
-        set custompathraw=!custompath!
-        for /f %%i in ('!gzstoolpath! -d -hwe !custompath!') do set custompath=%%i
-        goto :top
-    )
-
-:: Custom FTEX path processed
-:custompathprocessed
-set longstr=!custompathraw! & call :newlines
-echo.
-call :formathex custompath custompathhex
-echo   !custompathhex!
-
-:: Prepare the temp find and replace script, run the hex editor
-set scriptfile="!scriptdir!HexRepl-temp.xsc"
-set "xviscript=ADR 0!lf!REPLACEALL %%1 BY %%2!lf!EXIT"
-echo !xviscript! > !scriptfile!
-call :datemodified inputfile datemodified1
-!xvi32path! !inputfile! /S=!scriptfile! "!originalpathhex!" "!custompathhex!"
-call :datemodified inputfile datemodified2
-
-:: Delete the temp script file
-del !scriptfile!
-
-:: Modification result
-echo.
-echo.
-echo.
-if /i "!datemodified1!"=="!datemodified2!" (
-    set "modunsuccessful=Modification unsuccessful. Possibly the 'Original FTEX Path' entered may not exist in the target file, or the texture path has already been changed."
-    set longstr=!modunsuccessful! & call :newlines
-    echo.
-    choice /m "!BS!  Try again? (Yes/No)  !BS!" /n /c yn
-    if errorlevel 2 exit /b
-    if errorlevel 1 (
-        set originalpath=
-        set custompath=
-        goto :top
-        )
-    ) else (
-    pause>nul|set /p =!BS!  Modification successful^^! Press any key to close...  !BS!
-    )
-
-:: --------------------------------------- Functions ---------------------------------------
-:: -----------------------------------------------------------------------------------------
-
-:: Error message for incorrect texture filetype
-:errormsg
-    if defined resetprompt (
-        set resetprompt=
-        set "errormsg=Error: file entered was not a .ftex, please select the correct texture and try again."
-        set longstr=!errormsg! & call :newlines
-        echo.
-        )
-    if defined assetserror (
-        set assetserror=
-        set "errormsg=Error: texture entered was not contained within an Assets directory, please place custom texture within an Assets directory and try again."
-        set longstr=!errormsg! & call :newlines
-        echo.
-        )
-    endlocal
+    endlocal & goto :choice
     exit /b
 
-:: Visually format strings longer than window width into new lines with padding
-:newlines
-    call :varlength longstr longstrlength
-    if !longstrlength! gtr 55 (
-        set longstr=!longstr:"=!
-        echo   !longstr:~0,55!
-        set longstr=!longstr:~55!
-        if defined longstr goto :newlines
+:cmdheight
+    set "inheightall="
+    for /f "delims=" %%p in ("!%~1!") do (
+        setlocal disabledelayedexpansion
+        set "p=%%p"
+        setlocal enabledelayedexpansion
+        set "p=!p:"=!"
+        call :len p pheight
+        call :linescalc pheight
+        set /a "inheightall=!inheightall!+!pheight!+1"
+        for %%h in (!inheightall!) do endlocal & endlocal & set "inheightall=%%h"
         )
-    if !longstrlength! leq 55 (
-        echo   !longstr:"=!
+    if "%~1"=="input" (
+        set "cmdheightextra=3"
+        ) else (
+        rem Adjust extra margin depending on whether during setup
+        if not defined input (
+            set "cmdheightextra=0"
+            ) else (
+            rem Avoid adding margin prior to echo'ing final text
+            if not defined finalinputprompt (
+                set "cmdheightextra=5"
+                ) else (
+                    set "cmdheightextra=0"
+                )
+            )
         )
-    endlocal
-    exit /b 
+    set /a "cmdheight=!cmdheight!+!inheightall!+!cmdheightextra!"
+    exit /b
 
-:: Output number of characters in variable
-:varlength
+:cmdheightmanual
+    mode con lines=%~1
+    exit /b
+
+:datemodified
+    for %%f in (!%~1!) do (
+        rem Input path has trailing backslash trimmed for compatibility with forfiles
+        for /f "usebackq tokens=1,* delims=|" %%d in (
+            `forfiles /p "!indr[1]!!inpa[1]:~0,-1!" /m "!inna[1]!!inex[1]!" /c "cmd /c echo @fdate @ftime"`
+            ) do (
+            set "d=%%d"
+            )
+        )
+    set "%~2=!d!"
+    exit /b
+
+:detectemptyinput
+    if "!%~1!"=="""" set "%~1="
+    if "!%~1: =!"=="" set "%~1="
+    if "!%~1!"==" =" set "%~1="
+    exit /b
+
+:echoprompt
+    if not "%~2"=="noheading" call :heading "!%~1prompttext!"
+    set "l=!%~1!" & call :newlines
+    exit /b
+
+:error
+    set "error=1"
+    if "%~1"=="reset" (
+        set "error="
+        set "%~2="
+    ) else (
+        set "%~1=1"
+    )
+    exit /b
+
+:escape
+    set "s=!%~1:"=!"
+    setlocal disabledelayedexpansion
+    set "s=%s:!=###esc-excl###%"
+    set "s=%s:^=###esc-caret###%"
+    setlocal enabledelayedexpansion
+    for %%a in ("!s!") do endlocal & endlocal & set "%~1=%%a"
+    exit /b
+
+:unescape
+    set "s=!%~1:"=!"
+    rem Checks if string contains exclamation point to later adjust number of carets for unescaping
+    set "doublecaret=" & if not "!s!"=="!s:###esc-excl###=!" set "doublecaret=1"
+    setlocal disabledelayedexpansion
+    set "s=%s:###esc-excl###=^!%"
+    if defined doublecaret (set "s=%s:###esc-caret###=^^%") else (set "s=%s:###esc-caret###=^%")
+    setlocal enabledelayedexpansion
+    for %%a in ("!s!") do endlocal & endlocal & set "%~1=%%a"
+    exit /b
+
+:heading
+    set "h=%~1"
+    rem Determine length of heading string for trimming underline variable
+    call :len h trim
+    set /a "trim=!cmdpadtextwidth! - (!trim! + 2)" & rem Addition is number of spaces after text
+    set "l=!h!  !hl:~0,%trim%!" & echo. & call :newlines
+    set "h=" & set "trim="
+    exit /b
+
+:hex
+    if not defined %~1hex (
+        rem Check if pre-hashed filename already defined
+        if defined %~1hexpre (
+            set "hex=!%~1hexpre!"
+            ) else (
+                rem Generate hash
+                if /i not "!usequickhash:~0,1!"=="n" (
+                    for /f %%h in ('!QuickHash! !%~1! -p64e') do set "hex=%%h"
+                    ) else (
+                    for /f %%h in ('!GzsTool! -d -hwe !%~1!') do set "hex=%%h"
+                    )
+            )
+        rem Reverse byte order
+        set "count=0" & set "ha=0" & set "hb=0"
+        rem Loop through each eight bytes
+        for /l %%i in (1,1,8) do (
+            set /a "count+=1"
+            if !count! equ 1 (
+                set /a "ha+=2"
+                for /f "tokens=1 delims=" %%a in ("!ha!") do set "h=!h! !hex:~-%%a!"
+                ) else (
+                set /a "ha+=2" & set /a "hb+=2"
+                for /f "tokens=1-2 delims= " %%a in ("!ha! !hb!") do set "h=!h! !hex:~-%%a,-%%b!"
+                )
+            )
+        set "hex=!h!" & set "h="
+        rem Format to uppercase
+        set "u=" & for /f "skip=2 delims=" %%a in ('tree "\!hex!"') do if not defined u set "u=%%~a"
+        set "%~1hex=!u:~4!"
+        )
+    call :echoprompt %~1hex noheading
+    exit /b
+
+:hexscript
+    if not defined complete (
+        set "tempdir=!temp:"=!" & rem Strip any initial quotes in case Windows username contains spaces
+        set "xviscript="!tempdir!\HexRepl-temp.xsc""
+        rem Generate script
+        echo ADR 0!lf!REPLACEALL %%1 BY %%2!lf!EXIT > !xviscript!
+        call :datemodified input datemodified1
+        !XVI32! !input! /S=!xviscript! "!ftexorighex!" "!ftexcustomhex!"
+        call :datemodified input datemodified2
+        rem Delete the temp script
+        del !xviscript!
+        set "complete=1"
+        if /i "!datemodified1!"=="!datemodified2!" (
+            call :error "errorcomplete"
+            set "errorcompletemsg=Modification unsuccessful. Possibly the 'Original FTEX Path' entered may not exist in the target file, or the texture path has already been changed."
+            call :len errorcompletemsg errorcompletemsgheight
+            call :linescalc errorcompletemsgheight
+            set /a "errorcompletemsgheight+=1" & rem Extra new line for choice prompt
+            set "errorcompletemsgheight=+!errorcompletemsgheight!"
+            ) else (
+            if /i not "!promptaftersuccess:~0,1!"=="n" (
+                set /a "cmdheight+=2"
+                )
+            )
+        rem Compensate for :cmdheight regular prompt additional margin and add height of lines
+        set /a "cmdheight=!cmdheight!-(!cmdheightextra!-2)!errorcompletemsgheight!"
+        goto :inputprompts
+        )
+    echo.
+    if defined error (
+        if defined errorcomplete (
+            call :error "reset" "errorcomplete" & set "errorcompletemsgheight="
+            set "l=!erp! !errorcompletemsg!" & call :newlines
+            call :resetprompt
+            )
+        ) else (
+        set "excl=Modification successful^!"
+        if /i not "!promptaftersuccess:~0,1!"=="n" (
+            set "l=!excl!" & call :newlines
+            call :resetprompt
+            ) else (
+            set "excl=!excl! Press any key to close..."
+            call :prompt "excl" "pause"
+            )
+        )
+    exit /b
+
+:resetprompt
+    set "choices=yn"
+    call :prompt "Start again with same file? (Yes or Enter / No):"
+    call :choice !choices!
+    if !errorlevel! leq 1 (
+        call :initformat & call :cmdheight "input" & goto :inputprompts
+        ) else (
+            exit
+        )
+    exit /b
+
+:initformat
+    if /i "!colorscheme:~0,1!"=="l" (
+        color F0
+        ) else (
+        color 0F
+        )
+    set "version=0.3" & rem Script version
+    for /f %%a in ('"prompt $H &echo on &for %%b in (1) do rem"') do set bs=%%a
+    set "cmdpadtextwidth=60" & set "cmdpadwidth=3" & set /a "cmdwidth=!cmdpadtextwidth!+(!cmdpadwidth!*2)" & set "cmdheight=8"
+    set "ws=                         " & set "ws=!ws!!ws!!ws!!ws!" & set "cmdpad=!ws:~-%cmdpadwidth%!"
+    set "hl=תתתתתתתתתתתתתתתתתתתתתתתתת" & set "hl=!hl!!hl!!hl!!hl!" & rem Header line
+    mode con: cols=!cmdwidth! lines=!cmdheight! & title MGSV Custom Texture Path Hex Replacer ^(v!version!^)
+    set "inputprompttext=Target File"
+    set "ftexorigprompttext=Original FTEX Path"
+    set "ftexcustomprompttext=Custom FTEX Path"
+    set "whitelist=fmdl, fv2"
+    set "erp=(^!)" & rem Error message prefix
+    rem Reset relevant variables apart from input file
+    set "reset=ftexorig!lf!ftexcustom!lf!finalinputprompt!lf!complete"
+    for /f "delims=" %%a in ("!reset!") do (
+        set "%%a=" & set "%%ahex="
+        )
+    set lf=^
+
+
+    exit /b
+
+:input
+    set "count=0"
+    set args="!args:"=!"
+    for /f "tokens=1 delims=:" %%d in (!args!) do (
+        for %%l in ("!lf!") do (
+            set args=!args:%%d:\=%%l%%d:\!
+            )
+        )
+    set "args=!args: "="!"
+    set "args=!args:~2!"
+
+    for %%f in (!args!) do (
+        setlocal disabledelayedexpansion
+        set "infull=%%f"
+        setlocal enabledelayedexpansion
+        call :escape infull
+        for /f "delims=" %%e in ("!infull!") do (
+            endlocal & endlocal
+            set "infull=%%e"
+            call :unescape infull & set "infull=!infull:"=!"
+            )
+        rem Determine whether file or directory
+        set isfile=1&pushd "!infull!" 2>nul&&(popd&set isfile=)||(if not exist "!infull!" set isfile=)
+        if defined isfile (
+            set "isfile="
+            setlocal disabledelayedexpansion
+            for %%x in (%%f) do set "inex=%%~xx"
+            setlocal enabledelayedexpansion
+            call :skippable inex skippable
+            if defined skippable (
+                endlocal & endlocal
+                ) else (
+                endlocal & endlocal
+                set /a "count+=1"
+                call :escape infull
+                for %%c in (!count!) do (
+                    set "infull[%%c]=!infull!"
+                    call :unescape infull[%%c]
+                    )
+                )
+            )
+        )
+
+    for /l %%i in (1,1,!count!) do (
+        set "infull=!infull[%%i]!"
+        call :escape infull & set "infull=!infull:"=!"
+        for %%p in ("!infull!") do (
+            set "indr[%%i]=%%~dp"
+            set "inpa[%%i]=%%~pp"
+            set "inna[%%i]=%%~np"
+            set "inex[%%i]=%%~xp"
+            )
+        call :unescape inpa[%%i] & set "inpa[%%i]=!inpa[%%i]:"=!"
+        call :unescape inna[%%i] & set "inna[%%i]=!inna[%%i]:"=!"
+        call :unescape inex[%%i] & set "inex[%%i]=!inex[%%i]:"=!"
+        for %%s in (!infull[%%i]!) do if %%~zs equ 0 set "zerobytes[%%i]=1"
+        set "infull="
+        )
+
+    if !count! equ 0 (
+        set "count="
+        call :error "errorinvalidmodel" & set "input=" & goto :inputprompts
+        ) else (
+        rem Make the first file the exclusive input (if more than one input entered)
+        set "input=!infull[1]!"
+        )
+    exit /b
+
+:inputprompt
+    if not defined %~1 (
+        call :heading "!%~1prompttext!"
+
+        if defined error (
+            if defined errorinvalidmodel (
+                call :error "reset" "errorinvalidmodel"
+                set "l=!erp! Path either isn't a .fmdl/.fv2 file or doesn't exist." & call :newlines
+            )
+            if defined errorinvalidtexture (
+                call :error "reset" "errorinvalidtexture"
+                set "l=!erp! Path doesn't contain a .ftex." & call :newlines
+            )
+            if defined errortexturepath (
+                call :error "reset" "errortexturepath"
+                set "l=!erp! Path inside 'Assets' contains invalid characters (eg: spaces, brackets). Please check and rename." & call :newlines
+            )
+            if defined errortexturepathalt (
+                call :error "reset" "errortexturepathalt"
+                set "l=!erp! Path not usable as FTEX is neither contained in an 'Assets' directory nor has a valid existing hashed filename." & call :newlines
+            )
+            if defined errornoassetsdir (
+                call :error "reset" "errornoassetsdir"
+                set "l=!erp! Path doesn't contain an 'Assets' directory." & call :newlines
+            )
+        )
+
+        call :prompt "Drag and drop file here then press Enter:" "%~1"
+        call :detectemptyinput "%~1"
+        if defined %~1 (
+            call :trimspace "%~1"
+            call :wrapquotes "%~1"
+            if "%~1"=="input" (
+                rem Check if valid by sending it through input function (exist/whitelist check)
+                set args="!%1!"
+                call :input
+                if not defined inex[1] set "%~1=" & goto :inputprompts
+                ) else (
+                    rem Check if FTEX by simpler extension comparison
+                    set "%~1=!%~1:"=!"
+                    if not "!%1:~-4!"=="ftex" (
+                        set "%~1=" & call :error "errorinvalidtexture" & goto :inputprompts
+                    ) else (
+                        set "t=!%~1:\=/!"
+                        set "t=!t:"=!"
+                        rem Check for presence of `/Assets/` directory
+                        if "!t:/Assets/=!"=="!t!" (
+                            if "%~1"=="ftexcustom" (
+                                set "%~1=" & set "t=" & call :error "errornoassetsdir" & goto :inputprompts
+                            )
+                            if "%~1"=="ftexorig" (
+                                call :escape t & rem Escape to catch special characters
+                                set "t=!t:"=!" & rem Strip double quotes again for consistency between pasted/dragged paths
+                                if not "!t:/=!"=="!t!" (
+                                    call :trimslash & rem Trim path (requires being a call)
+                                )
+                                set "to=!t!" & rem Backup original variable for later echo
+                                set "t=!t:.ftex=!" & rem Strip extension for length check
+                                call :len t tlen
+                                if not "!tlen!"=="13" (
+                                    if not "!tlen!"=="12" (
+                                        if not "!tlen!"=="11" (
+                                            set "%~1=" & set "t=" & call :error "errortexturepathalt" & goto :inputprompts
+                                        )
+                                    )
+                                )
+                                if !tlen! leq 13 (
+                                    if !tlen! geq 11 (
+                                        rem Check for presence of invalid characters in remaining path
+                                        call :invalidpathcheck "t" "hashed"
+                                        if defined invalid (
+                                            set "%~1=" & set "t=" & call :error "errortexturepathalt" & goto :inputprompts
+                                        ) else (
+                                            rem Likely valid pre-hashed FTEX
+                                            rem Rename heading to indicate detection
+                                            set "%~1prompttext=!%~1prompttext! (Hashed Filename Assumed)"
+                                            rem Add appropriate byte depending on hash
+                                            if !tlen! leq 12 (
+                                                if !tlen! equ 11 set "t=0!t!"
+                                                set "t=68!t!"
+                                                ) else (
+                                                    if "!t:~0,1!"=="1" set "t=69!t:~1!"
+                                                    if "!t:~0,1!"=="2" set "t=6A!t:~1!"
+                                                    if "!t:~0,1!"=="3" set "t=6B!t:~1!"
+                                                )
+                                            set "t=15!t!"
+                                            set "%~1=!to!" & set "%~1hexpre=!t!" & set "t=" & set "to="
+                                        )
+                                    )
+                                ) 
+                            )    
+                        ) else (
+                            call :escape t
+                            call :trimassets
+                            set "%~1=!t!" & set "t="
+                            call :invalidpathcheck "%~1"
+                            if defined invalid (
+                                set "%~1=" & call :error "errortexturepath" & goto :inputprompts
+                            )
+                        )
+                    )
+                )
+            call :cmdheight "%~1" & goto :inputprompts
+            ) else (
+            goto :inputprompts
+            )
+        ) else (
+        call :echoprompt "%~1"
+        )
+    exit /b
+
+:invalidpathcheck
+    set "%~1=!%~1:"=!"
+    set "invalid="
+    if "%~2"=="hashed" (
+        set "validchars=0123456789abcdefghijkjlmnopqrstuvwxyz"
+        rem Check for lack of numbers
+        cmd /c "echo !%~1! ^| findstr /r [0-9]"
+        if !errorlevel! equ 1 set "invalid=1"
+    ) else (
+        set "validchars=0123456789abcdefghijkjlmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_/"
+    )
+    for /f "delims=%validchars%" %%a in ("!%~1:.ftex=!") do (
+        set "invalid=1"
+        )
+    exit /b
+
+:len
     set "s=!%~1!#"
     set "len=0"
-    for %%P in (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) do (
-        if "!s:~%%P,1!" NEQ "" ( 
-            set /a "len+=%%P"
-            set "s=!s:~%%P!"
-        )
-    )
-    endlocal
-    rem for some reason the function adds 1 additional number to result, subtracted below
-    set /a "len=!len!-1"
-    set "%~2=!len!"
-    exit /b
-
-:: Trim trailing whitespace from texture path (in cases where it's copied from text file)
-:trimwhitespace
-    set trim=!%~1!
-    for /f "tokens=* delims= " %%a in ('echo %trim% ') do set trim=%%a
-    set %~2=!trim:~0,-1!
-    endlocal
-    exit /b
-
-:: Strip double quotes from texture path, replace backslashes with forwardslashes
-:formatpath1
-    set format=!%~1:"=!
-    set %~2=!format:\=/!
-    endlocal
-    exit /b
-
-:: Truncate texture path to last occurrence of parent 'Assets' directory (assumes max 5 levels deep)
-:formatpath2
-    set "format=!%~1:*Assets/=!"
-    set "format=!format:*Assets/=!"
-    set "format=!format:*Assets/=!"
-    set "format=!format:*Assets/=!"
-    set "format=!format:*Assets/=!"
-    set "%~2=/Assets/!format!"
-    endlocal
-    exit /b
-
-:: Reverse hex byte order, format in uppercase
-:formathex
-    set "hex=!%~1!"
-    set hex1=!hex:~-2!
-    set hex2=!hex:~-4,-2!
-    set hex3=!hex:~-6,-4!
-    set hex4=!hex:~-8,-6!
-    set hex5=!hex:~-10,-8!
-    set hex6=!hex:~-12,-10!
-    set hex7=!hex:~-14,-12!
-    set hex8=!hex:~-16,-14!
-    set hex=!hex1! !hex2! !hex3! !hex4! !hex5! !hex6! !hex7! !hex8!
-    rem Make it uppercase 
-    set upper=
-    set "upperstr=!hex!"
-    for /f "skip=2 delims=" %%I in ('tree "\%upperstr%"') do if not defined upper set "upper=%%~I"
-    set "%~2=%upper:~3%"
-    endlocal
-    exit /b
-
-:: Check the target file timestamp
-:datemodified
-    for %%f in ("%~1") do (
-        for /f "tokens=1,* delims=|" %%k in (
-            'forfiles /p !inputfilepath! /m !inputfilename! /c "cmd /c echo @fdate @ftime"'
-            ) do (
-            set modified=%%k
+    for %%p in (4096 2048 1024 512 256 128 64 32 16 8 4 2 1) do (
+        if "!s:~%%p,1!" neq "" ( 
+            set /a "len+=%%p"
+            set "s=!s:~%%p!"
             )
         )
-    set "%~2=!modified!"
-    endlocal
+    set "s=" & set "%~2=!len!"
+    exit /b
+
+:linescalc
+    set "l=!%~1!"
+    set /a "l=!l!*100"
+    set /a "l=!l!/!cmdpadtextwidth!"
+    set /a "mod=!l! %% 100"
+    if !l! lss 100 set "l=100"
+    if !mod! gtr 0 (
+        if !l! gtr 100 (
+            set /a "add=100-!l:~-1!"
+            set /a "l=!l!+!add!" & set "add="
+            )
+        )
+    set /a "l=!l!/100" & set "%~1=!l!" & set "mod=" & set "l="
+    exit /b
+
+:newlines
+    set l=!l:"=!
+    call :len l llen
+    set "lineswidth=!cmdpadtextwidth!"
+    :newlinessub
+    if !llen! gtr !lineswidth! (
+        for %%w in (!lineswidth!) do (
+            echo !cmdpad!!l:~0,%%w!
+            set l=!l:~%%w!
+            )
+        if defined l goto :newlinessub
+        )
+    if !llen! leq !lineswidth! (
+        echo !cmdpad!!l!
+        )
+    set "l=" & set "llen="
+    echo. & rem Add new line spacer
+    exit /b
+
+:prompt
+    set "t=%~2" & set "p=!bs!!cmdpad!>"
+    rem To properly carry exclamation marks across call with prompt the string needs to be in existing variable.
+    if "%~1"=="excl" (
+        set "m=!%~1!" & set "excl="
+    ) else (
+        set "m=%~1"
+    )
+    if defined t (
+        if "!t!"=="pause" (
+            pause >nul|set /p "=!p! !m!  !bs!" & exit
+        )
+        if "!t!"=="pausecont" (
+            pause >nul|set /p "=!p! !m!  !bs!" & exit /b
+        )
+        if "!t!"=="timeout" (
+            timeout 1 >nul|set /p "=!p! !m!  !bs!" & exit
+        )
+        rem If none of the above assume regular prompt and second argument as input variable
+        if "%~1"=="" set "m=!bs!" & rem For textless prompts. Backspace variable removes extra space.
+        set /p "%~2=!p! !m!  !bs!" & exit /b
+    ) else (
+        <nul set /p "=!p! !m!  !bs!" & exit /b
+    )
+    exit /b
+
+:scriptargs
+    for %%f in ("!cmdcmdline!") do (
+        setlocal disabledelayedexpansion
+        set scr="%~f0"
+        set scrdir="%~dp0"
+        setlocal enabledelayedexpansion
+        call :len scr scrlen
+        call :len scrdir scrdirlen
+        set "scrall=!scrlen! !scrdirlen!"
+        for /f "tokens=1,2 delims= " %%a in ("!scrall!") do endlocal & endlocal & set "scrlen=%%a" & set "scrdirlen=%%b"
+        )
+    set "cmdcmdline=!cmdcmdline:~32!" & call set scr=%%cmdcmdline:~0,!scrlen!%%
+    call set scrdir=%%cmdcmdline:~0,!scrdirlen!%%
+    set "scrdir=!scrdir:~1,-1!"
+    set "args=!cmdcmdline:~%scrlen%,-1!" & set "args=!args:* =!"
+    exit /b
+
+:setupcheck
+    set "count=0"
+    for %%b in (%*) do (
+        set /a "count+=1"
+        set "binaries=!binaries! %%b"
+        set "binaries[!count!]=%%b"
+        )
+    if !count! gtr 1 set "plural=s"
+    if not defined p set /a "cmdheight+=7" & rem Define minimum initial window height
+    call :programpaths
+    call :setupcheckcalc !binaries!
+    if !p! geq 1 (
+        call :cmdheightmanual "!cmdheight!"
+        if !p2! gtr 1 if !p1! gtr 1 (
+            call :heading "Initial Setup"
+            set "l=You'll first need to grab the latest of the following:" & call :newlines
+            rem Window height calc assumes one line per program description
+            if /i not "!usequickhash:~0,1!"=="n" (
+                set "l=ת QuickHash" & call :newlines
+                ) else (
+                set "l=ת GzsTool (BobDoleOwndU version)" & call :newlines
+                )
+            set "l=!ת XVI32 (hex editor)" & call :newlines
+            set "l=Then follow the prompt!plural! below to set the program path!plural!." & call :newlines
+            call :heading "Program Path!plural!"
+            )
+        if not !p1! gtr 1 if !p2! geq 1 (
+            if !p2! gtr 1 set "pluralmissing=s"
+            call :heading "Setup Update"
+            set "l=Looks like the following program!pluralmissing! moved location:" & call :newlines
+            for /f "delims=" %%b in ("!binariesmissing!") do (
+                set "l=!ת %%b" & call :newlines
+                )
+            set "l=Follow the prompt!pluralmissing! below to update the path!pluralmissing!." & call :newlines
+            call :heading "Program Path!pluralmissing!"
+            )
+
+        call :setupcheckpromptloop !binaries!
+
+        set "excl=Setup complete^! Press any key to continue..."
+        echo. & set "setupcomplete=1" & call :prompt "excl" "pausecont"
+        ) else (
+            call :initformat
+        )
+    set "p="
+    if defined setupcomplete call :initformat & call :programpaths & goto :inputs & rem Break out of the setup
+    exit /b
+
+:setupcheckcalc
+    set "p1=0" & set "p2=0"
+    for %%b in (%*) do (
+        if not defined %%b (
+            set /a "p1+=1"
+            if not defined p set /a "cmdheight+=2"
+            )
+        if not exist !%%b! (
+            set /a "p2+=1"
+            for /l %%i in (1,1,!count!) do (
+                if "%%b"=="!binaries[%%i]!" (
+                    set "binariesmissing=!binariesmissing!!lf!%%b"
+                    if defined %%b set /a "cmdheight+=2"
+                    )
+                )
+            )
+        )
+    set /a "p=!p1!+!p2!"
+    exit /b
+
+:setupcheckpromptloop
+    for %%b in (%*) do (
+        if not exist !%%b! (
+            call :setupcheckprompt %%b %%bpath
+            )
+        )
+    rem Write the program path to the script itself
+    for %%b in (%*) do (
+        if not exist !%%b! (
+            >>!scr! echo set %%b=!%%bpath!
+            )
+        )
+    exit /b
+
+:setupcheckprompt
+    if not defined %~2 (
+
+        if defined error (
+            if defined errorpath (
+                call :error "reset" "errorpath"
+                set "l=!erp! Program path entered doesn't exist. Please try again." & call :newlines
+            )
+            if defined errorversion (
+                call :error "reset" "errorversion"
+                set "l=!erp! BobDoleOwndU's version required. Please try again." & call :newlines
+            )
+        )
+        
+        call :prompt "Drag and drop %~1.exe here then press Enter:" "%~2"
+        call :detectemptyinput "%~2"
+        if defined %~2 (
+            call :trimspace "%~2"
+            set "exename=%~1.exe"
+            rem Compare entered path to binary name (assumes no special characters in name)
+            set "t=!%2:\=/!" & call :trimslash
+            if /i not "!t!"=="!exename!" (
+                set "%~2=" & set "exename=" & call :error "errorpath" & call :setupcheck
+                )
+            call :wrapquotes "%~2"
+            if not exist "!%~2!" set "%~2=" & call :error "errorpath" & call :setupcheck
+
+            rem Check if program is Bob's version by comparing to known output
+            if "%~1"=="GzsTool" (
+                for /f "usebackq tokens=1 delims= " %%a in (`!%~2! -d -hwe '/Assets/tpp/custom/test.ftex'`) do (
+                    if not "%%a"=="6172ababdd4e3" (
+                        set "%~2=" & call :error "errorversion" & call :setupcheck
+                    )
+                )
+            )
+            call :cmdheight "%~1path" & call :setupcheck
+            ) else (
+            call :setupcheck
+            )
+    ) else (
+        call :echoprompt "%~2" noheading
+    )
+    exit /b
+
+:skippable
+    set "x=!%~1:"=!"
+    call :escape whitelist & set "whitelist=!whitelist:"=!"
+    rem Commands not joined on single line to avoid issues:
+    call :escape x
+    set "x=!x:"=!"
+    set "x=!x:.=!"
+    if "!whitelist:%x%=!"=="!whitelist!" set "%~2=1"
+    exit /b
+
+:trimassets
+    rem Trim from last occurrence of `/Assets/`
+    set "t=!t:"=!" & rem String mustn't contain double quotes for this function to work
+    set "t=%t:/Assets/=" & set "trim=%"
+    set "t=/Assets/!trim!" & set "trim="
+    exit /b
+
+:trimslash
+    rem Trim from last occurrence of `/` (filename only)
+    set "t=!t:"=!"
+    set "t=%t:/=" & set "trim=%"
+    set "t=!trim!" & set "trim="
+    exit /b
+
+:trimspace
+    rem Remove leading/trailing whitespace
+    call :escape %~1
+    set "t1=!%~1:"=! "
+    set "t=%t1: =" & (if "!t!" neq "" set "t2=!t2! !t!") & set "t=%" & set "t2=!t2:~1!"
+    set "%~1=!t2!"
+    call :unescape %~1
+    set "t=" & set "t1=" & set "t2="
+    exit /b
+
+:wrapquotes
+    set "%~1="!%~1!""
+    set "%~1=!%~1:""="!"
     exit /b
 
 endlocal
@@ -482,4 +755,4 @@ endlocal
 :: ------------------------------------ Program Paths --------------------------------------
 :: -----------------------------------------------------------------------------------------
 
-:checkpaths
+:programpaths
