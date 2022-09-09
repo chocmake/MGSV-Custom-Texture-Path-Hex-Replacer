@@ -10,16 +10,16 @@ For an overview of features to this technique, an installation guide, and genera
 
 Example GIF of script usage:
 
-![script in practice](https://user-images.githubusercontent.com/34178938/47422782-30b26580-d7cf-11e8-8347-f0e920e235b5.gif)
+![script in practice-v0 3](https://user-images.githubusercontent.com/34178938/189296967-cf86d966-e023-4be5-a46a-de089166b292.gif)
 
 ***
 
 ### Dependancies
 
-- [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases/latest)
+- [GzsTool (BobDoleOwndU version)](https://github.com/BobDoleOwndU/GzsTool/releases/latest) or [QuickHash](https://github.com/BobDoleOwndU/QuickHash/releases/latest)
 - [XVI32 hex editor](http://www.chmaas.handshake.de/delphi/freeware/xvi32/xvi32.htm)
 
-> Note: BobDoleOwndU's fork of GzsTool linked above is necessary as it contains a hashing function used by the script that Atvaark's version of GzsTool lacks. Make sure to download the version linked.
+> Note: As of v0.3 of the script there's a setting to use QuickHash for the hex function instead. Open the script in a text editor and change `set usequickhash=no` to `set usequickhash=yes`.
 
 ***
 
@@ -54,4 +54,4 @@ Ground Zeroes uses a different method of writing textures to the FMDL which is f
 
 ### Known issues
 
-- Unicode is unsupported. For one since batch seems to have trouble with it for storing the program paths but also importantly as the XVI32 hex editor doesn't appear to read files from paths with Unicode.
+- Extended ranges of Unicode is unsupported. Due to both encoding for storing the program paths in the batch script but also importantly as the XVI32 hex editor doesn't appear to read files from paths with such Unicode characters. 
