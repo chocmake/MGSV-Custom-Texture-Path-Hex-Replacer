@@ -6,7 +6,7 @@
 :: Requirements:    GzsTool (BobDoleOwndU version) or QuickHash, XVI32 (hex editor)
 :: URL:             https://github.com/chocmake/MGSV-Custom-Texture-Path-Hex-Replacer
 :: Author:          choc
-:: Version:         0.3 (2022-09-07)
+:: Version:         0.3.1 (2025-09-27)
 
 :: -----------------------------------------------------------------------------------------
 
@@ -25,6 +25,8 @@ set usequickhash=no
 set promptaftersuccess=no
 
 :: Script window color scheme
+:: Note: currently overriding this choice for Windows 11 users since W11 introduced a
+:: background color issue with its console handling for dynamically changing window heights.
 :: Valid values: light, dark
 set colorscheme=light
 
@@ -275,12 +277,23 @@ exit
     exit /b
 
 :initformat
-    if /i "!colorscheme:~0,1!"=="l" (
-        color F0
-        ) else (
-        color 0F
-        )
-    set "version=0.3" & rem Script version
+    rem Check if Windows 11
+    for /f "tokens=4 delims=[] " %%a in ('ver') do set "v=%%a"
+    set "w=!v:10.0.=!"
+    if !v! == !w! goto skip
+    set "x=.!w:*.=!"
+    set "w=!w:%x%=!"
+
+    rem Only apply color scheme if W10 or below to avoid current W11 issue with background color on dynamic height console windows. Windows 11 is reported as version `10.0.22000` and above.
+    if !w! lss 22000 (
+        if /i "!colorscheme:~0,1!"=="l" (
+            color F0
+            ) else (
+            color 0F
+            )
+    )
+
+    set "version=0.3.1" & rem Script version
     for /f %%a in ('"prompt $H &echo on &for %%b in (1) do rem"') do set bs=%%a
     set "cmdpadtextwidth=60" & set "cmdpadwidth=3" & set /a "cmdwidth=!cmdpadtextwidth!+(!cmdpadwidth!*2)" & set "cmdheight=8"
     set "ws=                         " & set "ws=!ws!!ws!!ws!!ws!" & set "cmdpad=!ws:~-%cmdpadwidth%!"
